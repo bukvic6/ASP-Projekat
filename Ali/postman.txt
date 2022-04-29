@@ -1,0 +1,17 @@
+create configuration
+POST -> localhost:8000/config/
+    {
+        "entries": {
+            "konfiguracija": "prva konf"
+
+        }
+
+    }
+
+Get all configurations
+
+GET localhost:8000/configs/
+
+del configuration
+
+DELETE localhost:8000/config/id
