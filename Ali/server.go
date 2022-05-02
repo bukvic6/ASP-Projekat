@@ -10,6 +10,9 @@ import (
 type service struct {
 	data map[string][]*Config
 }
+type groupService struct {
+	data map[string][]*Group
+}
 
 func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
@@ -40,6 +43,35 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	ts.data[id] = listConf
 	renderJSON(w, listConf)
 }
+func (gs *groupService) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeBodyGroups(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	id := createId()
+	rt.Id = id
+	var listConf []*Group
+
+	listConf = append(listConf, rt)
+	gs.data[id] = listConf
+	renderJSON(w, listConf)
+}
+
 func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
 	allTasks := [][]*Config{}
 	for _, v := range ts.data {

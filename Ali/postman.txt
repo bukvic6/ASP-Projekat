@@ -15,3 +15,30 @@ GET localhost:8000/configs/
 del configuration
 
 DELETE localhost:8000/config/id
+
+
+GROUPS:
+
+POST -> localhost:8000/configGroups
+
+{
+
+    "config": [
+        {
+
+            "entries": {
+                "ip": "555",
+                "router": "512423",
+                "router2": "76976"
+            }
+        },
+        {
+
+            "entries": {
+                "ip": "421",
+                "router": "51241",
+                "router2": "769214176"
+            }
+        }
+    ]
+}

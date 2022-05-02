@@ -18,6 +18,17 @@ func decodeBody(r io.Reader) (*Config, error) {
 	return &rt, nil
 }
 
+func decodeBodyGroups(r io.Reader) (*Group, error) {
+	dec := json.NewDecoder(r)
+	dec.DisallowUnknownFields()
+
+	var rt Group
+	if err := dec.Decode(&rt); err != nil {
+		return nil, err
+	}
+	return &rt, nil
+}
+
 func renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 	if err != nil {

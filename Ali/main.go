@@ -21,7 +21,12 @@ func main() {
 	server := service{
 		data: map[string][]*Config{},
 	}
+	groupServer := groupService{
+		data: map[string][]*Group{},
+	}
+
 	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")
+	router.HandleFunc("/configGroups/", groupServer.createGroupHandler).Methods("POST")
 	router.HandleFunc("/config/{id}/", server.delPostHandler).Methods("DELETE")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
 
