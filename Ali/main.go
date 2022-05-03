@@ -22,7 +22,7 @@ func main() {
 		data: map[string][]*Config{},
 	}
 	groupServer := groupService{
-		data: map[string][]*Group{},
+		data: map[string]*Group{},
 	}
 
 	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")

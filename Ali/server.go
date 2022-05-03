@@ -11,7 +11,7 @@ type service struct {
 	data map[string][]*Config
 }
 type groupService struct {
-	data map[string][]*Group
+	data map[string]*Group
 }
 
 func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
@@ -65,10 +65,9 @@ func (gs *groupService) createPutHandler(w http.ResponseWriter, req *http.Reques
 
 	val := mux.Vars(req)
 
-	var group Group
-	group.Id = val["id"]
+	id := val["id"]
+	group := gs.data[id]
 	group.Config = append(group.Config, *rt)
-
 	renderJSON(w, group)
 
 }
@@ -94,11 +93,9 @@ func (gs *groupService) createGroupHandler(w http.ResponseWriter, req *http.Requ
 
 	id := createId()
 	rt.Id = id
-	var listConf []*Group
 
-	listConf = append(listConf, rt)
-	gs.data[id] = listConf
-	renderJSON(w, listConf)
+	gs.data[id] = rt
+	renderJSON(w, rt)
 }
 
 func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
@@ -110,7 +107,7 @@ func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, allTasks)
 }
 func (gs *groupService) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
-	allTasks := [][]*Group{}
+	allTasks := []*Group{}
 	for _, v := range gs.data {
 		allTasks = append(allTasks, v)
 	}
