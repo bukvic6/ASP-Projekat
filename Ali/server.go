@@ -43,6 +43,35 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	ts.data[id] = listConf
 	renderJSON(w, listConf)
 }
+func (gs *groupService) createPutHandler(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeBody(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	val := mux.Vars(req)
+
+	var group Group
+	group.Id = val["id"]
+	group.Config = append(group.Config, *rt)
+
+	renderJSON(w, group)
+
+}
 func (gs *groupService) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -109,22 +138,3 @@ func (gs *groupService) delPostGroupHandler(w http.ResponseWriter, req *http.Req
 		http.Error(w, err.Error(), http.StatusNotFound)
 	}
 }
-
-//NOTE: pokusajte odraditi prosirenje konfiguracione grupe slicno ovome
-//u sustini to je funkcija prvo brisanja pa onda opet dodavanja
-
-//func updateMovie(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json")
-//	params := mux.Vars(r)
-//	for index, item := range movies {
-//		if item.ID == params["id"] {
-//			movies = append(movies[:index], movies[index+1:]...)
-//			var movie Movie
-//			_ = json.NewDecoder(r.Body).Decode(&movie)
-//			movie.ID = params["id"]
-//			movies = append(movies, movie)
-//			json.NewEncoder(w).Encode(movie)
-//			return
-//		}
-//	}
-//}
