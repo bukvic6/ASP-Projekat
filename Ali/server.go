@@ -192,28 +192,32 @@ func (ts *service) delPostHandler(w http.ResponseWriter, r *http.Request) {
 		if v.Version == version {
 			delete(ts.data, id)
 			renderJSON(w, v)
-
 		} else {
 			err := errors.New("key not found")
 			http.Error(w, err.Error(), http.StatusNotFound)
 		}
 	}
-	/*	if v, ok := ts.data[id]; ok {
-			delete(ts.data, id)
+}
+
+func (gs *service) delPostGroupHandler(w http.ResponseWriter, r *http.Request) {
+	val := mux.Vars(r)
+
+	id := val["id"]
+	task, ok := gs.data1[id]
+	if !ok {
+		err := errors.New("key not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	version := val["version"]
+
+	for _, v := range task {
+		if v.Version == version {
+			delete(gs.data1, id)
 			renderJSON(w, v)
 		} else {
 			err := errors.New("key not found")
 			http.Error(w, err.Error(), http.StatusNotFound)
-		}*/
-}
-
-func (gs *service) delPostGroupHandler(w http.ResponseWriter, req *http.Request) {
-	id := mux.Vars(req)["id"]
-	if v, ok := gs.data[id]; ok {
-		delete(gs.data, id)
-		renderJSON(w, v)
-	} else {
-		err := errors.New("key not found")
-		http.Error(w, err.Error(), http.StatusNotFound)
+		}
 	}
 }

@@ -24,9 +24,10 @@ GROUPS:
 POST -> localhost:8000/configGroups
 
 {
-    "version": "1",
+    "version": "3",
     "config": [
         {
+            "version": "1",
             "entries": {
                 "ip": "555",
                 "router": "512423",
@@ -34,6 +35,7 @@ POST -> localhost:8000/configGroups
             }
         },
         {
+            "version": "2",
             "entries": {
                 "ip": "421",
                 "router": "51241",
@@ -42,3 +44,4 @@ POST -> localhost:8000/configGroups
         }
     ]
 }
+
