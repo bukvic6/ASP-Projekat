@@ -8,11 +8,13 @@ import (
 )
 
 type service struct {
-	data map[string][]*Config
+	data  map[string][]*Config `json:"data"`
+	data1 map[string][]*Group  `json:"data"`
 }
-type groupService struct {
-	data map[string]*Group
-}
+
+//type groupService struct {
+//	data map[string][]*Group
+//}
 
 func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
@@ -41,9 +43,10 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 
 	listConf = append(listConf, rt)
 	ts.data[id] = listConf
-	renderJSON(w, listConf)
+	renderJSON(w, ts.data)
 }
-func (gs *groupService) createPutHandler(w http.ResponseWriter, req *http.Request) {
+
+/*func (gs *service) createPutHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -70,8 +73,8 @@ func (gs *groupService) createPutHandler(w http.ResponseWriter, req *http.Reques
 	group.Config = append(group.Config, *rt)
 	renderJSON(w, group)
 
-}
-func (gs *groupService) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+}*/
+func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -93,9 +96,12 @@ func (gs *groupService) createGroupHandler(w http.ResponseWriter, req *http.Requ
 
 	id := createId()
 	rt.Id = id
+	var listConf []*Group
 
-	gs.data[id] = rt
-	renderJSON(w, rt)
+	listConf = append(listConf, rt)
+	ts.data1[id] = listConf
+	renderJSON(w, ts.data1)
+
 }
 
 func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
@@ -106,13 +112,43 @@ func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
 
 	renderJSON(w, allTasks)
 }
-func (gs *groupService) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
-	allTasks := []*Group{}
-	for _, v := range gs.data {
-		allTasks = append(allTasks, v)
+
+func (gs *service) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
+	allTasks := make(map[string][]*Group)
+	for k, v := range gs.data1 {
+		allTasks[k] = v
 	}
 
 	renderJSON(w, allTasks)
+}
+
+func (gs *service) getGroupHandler(w http.ResponseWriter, r *http.Request) {
+	val := mux.Vars(r)
+
+	id := val["id"]
+	//allTasks := make(map[string][]*Group)
+	task, ok := gs.data1[id]
+	if !ok {
+		err := errors.New("key not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	version := val["version"]
+	allTasks := []*Group{}
+	for _, v := range task {
+		if v.Version == version {
+			allTasks = append(allTasks, v)
+			renderJSON(w, allTasks)
+
+		} else {
+			err := errors.New("key not found")
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
+
+	}
+
+	//	version := val["version"]
+
 }
 
 func (ts *service) delPostHandler(w http.ResponseWriter, req *http.Request) {
@@ -125,7 +161,8 @@ func (ts *service) delPostHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	}
 }
-func (gs *groupService) delPostGroupHandler(w http.ResponseWriter, req *http.Request) {
+
+func (gs *service) delPostGroupHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	if v, ok := gs.data[id]; ok {
 		delete(gs.data, id)

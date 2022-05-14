@@ -22,10 +22,9 @@ GROUPS:
 POST -> localhost:8000/configGroups
 
 {
-
+    "version": "1",
     "config": [
         {
-
             "entries": {
                 "ip": "555",
                 "router": "512423",
@@ -33,7 +32,6 @@ POST -> localhost:8000/configGroups
             }
         },
         {
-
             "entries": {
                 "ip": "421",
                 "router": "51241",

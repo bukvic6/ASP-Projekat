@@ -19,19 +19,21 @@ func main() {
 	router.StrictSlash(true)
 
 	server := service{
-		data: map[string][]*Config{},
+		data:  map[string][]*Config{},
+		data1: map[string][]*Group{},
 	}
-	groupServer := groupService{
-		data: map[string]*Group{},
-	}
+	//	groupServer := groupService{
+	//		data: map[string]*[]Group{},
+	//	}
 
 	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")
-	router.HandleFunc("/configGroups/", groupServer.createGroupHandler).Methods("POST")
+	router.HandleFunc("/configGroups/", server.createGroupHandler).Methods("POST")
 	router.HandleFunc("/config/{id}/", server.delPostHandler).Methods("DELETE")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
-	router.HandleFunc("/configGroups/", groupServer.getAllGroupHandler).Methods("GET")
-	router.HandleFunc("/configGroup/{id}/", groupServer.delPostGroupHandler).Methods("DELETE")
-	router.HandleFunc("/configGroup/{id}/", groupServer.createPutHandler).Methods("PUT")
+	router.HandleFunc("/configGroups/", server.getAllGroupHandler).Methods("GET")
+	router.HandleFunc("/configGroups/{version}/{id}/", server.getGroupHandler).Methods("GET")
+	router.HandleFunc("/configGroup/{id}/", server.delPostGroupHandler).Methods("DELETE")
+	//router.HandleFunc("/configGroup/{id}/", server.createPutHandler).Methods("PUT")
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 	go func() {
