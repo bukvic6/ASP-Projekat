@@ -104,10 +104,10 @@ func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) 
 
 }
 
-func (ts *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
-	allTasks := [][]*Config{}
-	for _, v := range ts.data {
-		allTasks = append(allTasks, v)
+func (gs *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
+	allTasks := make(map[string][]*Config)
+	for k, v := range gs.data {
+		allTasks[k] = v
 	}
 
 	renderJSON(w, allTasks)
@@ -149,6 +149,30 @@ func (gs *service) getGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	//	version := val["version"]
 
+}
+
+func (gs *service) getConfigHandler(w http.ResponseWriter, r *http.Request) {
+	val := mux.Vars(r)
+
+	id := val["id"]
+	task, ok := gs.data[id]
+	if !ok {
+		err := errors.New("key not found")
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	version := val["version"]
+	allTasks := []*Config{}
+	for _, v := range task {
+		if v.Version == version {
+			allTasks = append(allTasks, v)
+			renderJSON(w, allTasks)
+
+		} else {
+			err := errors.New("key not found")
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
+	} //	version := val["version"]
 }
 
 func (ts *service) delPostHandler(w http.ResponseWriter, req *http.Request) {

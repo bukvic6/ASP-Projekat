@@ -1,11 +1,13 @@
 create configuration
 POST -> localhost:8000/config/
+
     {
+        "version": "0.1",
         "entries": {
-            "konfiguracija": "prva konf"
-
+            "ip": "555",
+            "router": "512423",
+            "router2": "76976"
         }
-
     }
 
 Get all configurations
