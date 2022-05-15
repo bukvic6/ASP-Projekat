@@ -46,7 +46,7 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, ts.data)
 }
 
-/*func (gs *service) createPutHandler(w http.ResponseWriter, req *http.Request) {
+func (gs *service) createPutHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -69,11 +69,25 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	val := mux.Vars(req)
 
 	id := val["id"]
-	group := gs.data[id]
-	group.Config = append(group.Config, *rt)
-	renderJSON(w, group)
+	group := gs.data1[id]
+	version := val["version"]
+	for _, v := range group {
+		if v.Version == version {
+			v.Config = append(v.Config, *rt)
+			renderJSON(w, v.Config)
 
-}*/
+		} else {
+			err := errors.New("key not found")
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
+
+	}
+	/*	group
+
+		group.Config = append(group.Config, *rt)
+		renderJSON(w, group)
+	*/
+}
 func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -101,7 +115,6 @@ func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) 
 	listConf = append(listConf, rt)
 	ts.data1[id] = listConf
 	renderJSON(w, ts.data1)
-
 }
 
 func (gs *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
