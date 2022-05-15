@@ -88,7 +88,7 @@ func (gs *service) createPutHandler(w http.ResponseWriter, req *http.Request) {
 		renderJSON(w, group)
 	*/
 }
-func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+func (gs *service) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -113,8 +113,38 @@ func (ts *service) createGroupHandler(w http.ResponseWriter, req *http.Request) 
 	var listConf []*Group
 
 	listConf = append(listConf, rt)
-	ts.data1[id] = listConf
-	renderJSON(w, ts.data1)
+	gs.data1[id] = listConf
+	renderJSON(w, gs.data1)
+}
+func (gs *service) createGroupVersionHandler(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeBodyGroups(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	val := mux.Vars(req)
+	id := val["id"]
+
+	group := gs.data1[id]
+
+	rt.Id = id
+	group = append(group, rt)
+	gs.data1[id] = group
+	renderJSON(w, gs.data1)
+
 }
 
 func (gs *service) getAllHandler(w http.ResponseWriter, req *http.Request) {
