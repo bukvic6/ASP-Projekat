@@ -40,6 +40,11 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 	w.Write(js)
 }
 
+//func remelement(l []*Config, index int) []*Config {
+//	l[index] = l[len(l)-1]
+//	return l[:len(l)-1]
+//}
+
 func createId() string {
 	return uuid.New().String()
 }

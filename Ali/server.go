@@ -212,9 +212,6 @@ func (gs *service) getGroupHandler(w http.ResponseWriter, r *http.Request) {
 			allTasks = append(allTasks, v)
 			renderJSON(w, allTasks)
 
-		} else {
-			err := errors.New("key not found")
-			http.Error(w, err.Error(), http.StatusNotFound)
 		}
 
 	}
@@ -233,6 +230,7 @@ func (gs *service) getConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
 	version := val["version"]
 	allTasks := []*Config{}
 	for _, v := range task {
@@ -240,13 +238,10 @@ func (gs *service) getConfigHandler(w http.ResponseWriter, r *http.Request) {
 			allTasks = append(allTasks, v)
 			renderJSON(w, allTasks)
 
-		} else {
-			err := errors.New("key not found")
-			http.Error(w, err.Error(), http.StatusNotFound)
 		}
-	} //	version := val["version"]
-}
 
+	}
+}
 func (ts *service) delPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	val := mux.Vars(r)
@@ -258,17 +253,17 @@ func (ts *service) delPostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	version := val["version"]
 
-	for _, v := range task {
+	version := val["version"]
+	for index, v := range task {
 		if v.Version == version {
-			delete(ts.data, id)
-			renderJSON(w, ts.data)
-		} else {
-			err := errors.New("key not found")
-			http.Error(w, err.Error(), http.StatusNotFound)
+			task = append(task[:index], task[index+1:]...)
+			ts.data[id] = task
+			break
 		}
 	}
+	renderJSON(w, ts.data)
+
 }
 
 func (gs *service) delPostGroupHandler(w http.ResponseWriter, r *http.Request) {
@@ -283,13 +278,23 @@ func (gs *service) delPostGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	version := val["version"]
 
-	for _, v := range task {
+	for index, v := range task {
 		if v.Version == version {
-			delete(gs.data1, id)
-			renderJSON(w, v)
-		} else {
-			err := errors.New("key not found")
-			http.Error(w, err.Error(), http.StatusNotFound)
+			task = append(task[:index], task[index+1:]...)
+			gs.data1[id] = task
+			break
 		}
 	}
+	renderJSON(w, gs.data1)
+
+	//
+	//for _, v := range task {
+	//	if v.Version == version {
+	//		delete(gs.data1, id)
+	//		renderJSON(w, v)
+	//	} else {
+	//		err := errors.New("key not found")
+	//		http.Error(w, err.Error(), http.StatusNotFound)
+	//	}
+	//}
 }
