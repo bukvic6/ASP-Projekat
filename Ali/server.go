@@ -45,6 +45,35 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	ts.data[id] = listConf
 	renderJSON(w, ts.data)
 }
+func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeBody(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	val := mux.Vars(req)
+	id := val["id"]
+	config := ts.data[id]
+
+	config = append(config, rt)
+	ts.data[id] = config
+
+	renderJSON(w, ts.data)
+
+}
 
 func (gs *service) createPutHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
@@ -234,7 +263,7 @@ func (ts *service) delPostHandler(w http.ResponseWriter, r *http.Request) {
 	for _, v := range task {
 		if v.Version == version {
 			delete(ts.data, id)
-			renderJSON(w, v)
+			renderJSON(w, ts.data)
 		} else {
 			err := errors.New("key not found")
 			http.Error(w, err.Error(), http.StatusNotFound)
