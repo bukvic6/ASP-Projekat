@@ -7,14 +7,9 @@ import (
 	"net/http"
 )
 
-type service struct {
-	data  map[string][]*Config `json:"data"`
-	data1 map[string][]*Group  `json:"data"`
+type configServer struct {
+	store *cs.ConfigStore
 }
-
-//type groupService struct {
-//	data map[string][]*Group
-//}
 
 func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
