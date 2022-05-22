@@ -1,8 +1,8 @@
 package main
 
 import (
+	cs "Ali/configstore"
 	"errors"
-	"github.com/gorilla/mux"
 	"mime"
 	"net/http"
 )
@@ -11,7 +11,7 @@ type configServer struct {
 	store *cs.ConfigStore
 }
 
-func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
+func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -30,14 +30,15 @@ func (ts *service) createPostHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	id := createId()
-	var listConf []*Config
-	listConf = append(listConf, rt)
-	ts.data[id] = listConf
-	renderJSON(w, ts.data)
+	post, err := cs.store.Post(rt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, post)
 }
-func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
+
+/*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -263,15 +264,14 @@ func (gs *service) delPostGroupHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	renderJSON(w, gs.data1)
-
-	//
-	//for _, v := range task {
-	//	if v.Version == version {
-	//		delete(gs.data1, id)
-	//		renderJSON(w, v)
-	//	} else {
-	//		err := errors.New("key not found")
-	//		http.Error(w, err.Error(), http.StatusNotFound)
-	//	}
-	//}
-}
+*/
+//
+//for _, v := range task {
+//	if v.Version == version {
+//		delete(gs.data1, id)
+//		renderJSON(w, v)
+//	} else {
+//		err := errors.New("key not found")
+//		http.Error(w, err.Error(), http.StatusNotFound)
+//	}
+//}

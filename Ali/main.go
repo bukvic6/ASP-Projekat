@@ -1,6 +1,7 @@
 package main
 
 import (
+	cs "Ali/configstore"
 	"context"
 	"github.com/gorilla/mux"
 	"log"
@@ -18,22 +19,26 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 
-	server := service{
-		data:  map[string][]*Config{},
-		data1: map[string][]*Group{},
+	store, err := cs.New()
+	if err != nil {
+		log.Fatal(err)
 	}
+	server := configServer{
+		store: store,
+	}
+	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")
 
-	router.HandleFunc("/config", server.createPostHandler).Methods("POST")
-	router.HandleFunc("/configGroups", server.createGroupHandler).Methods("POST")
-	router.HandleFunc("/config/{id}/{version}", server.delPostHandler).Methods("DELETE")
-	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
-	router.HandleFunc("/configGroups", server.getAllGroupHandler).Methods("GET")
-	router.HandleFunc("/configGroups/{version}/{id}", server.getGroupHandler).Methods("GET")
-	router.HandleFunc("/config/{id}/{version}", server.getConfigHandler).Methods("GET")
-	router.HandleFunc("/configGroups/{version}/{id}", server.delPostGroupHandler).Methods("DELETE")
-	router.HandleFunc("/configGroups/{version}/{id}", server.createPutHandler).Methods("PUT")
-	router.HandleFunc("/configGroups/{id}", server.createGroupVersionHandler).Methods("PUT")
-	router.HandleFunc("/config/{id}", server.createConfigVersionHandler).Methods("PUT")
+	/*	router.HandleFunc("/config", server.createPostHandler).Methods("POST")
+		router.HandleFunc("/configGroups", server.createGroupHandler).Methods("POST")
+		router.HandleFunc("/config/{id}/{version}", server.delPostHandler).Methods("DELETE")
+		router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
+		router.HandleFunc("/configGroups", server.getAllGroupHandler).Methods("GET")
+		router.HandleFunc("/configGroups/{version}/{id}", server.getGroupHandler).Methods("GET")
+		router.HandleFunc("/config/{id}/{version}", server.getConfigHandler).Methods("GET")
+		router.HandleFunc("/configGroups/{version}/{id}", server.delPostGroupHandler).Methods("DELETE")
+		router.HandleFunc("/configGroups/{version}/{id}", server.createPutHandler).Methods("PUT")
+		router.HandleFunc("/configGroups/{id}", server.createGroupVersionHandler).Methods("PUT")
+		router.HandleFunc("/config/{id}", server.createConfigVersionHandler).Methods("PUT")*/
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 	go func() {

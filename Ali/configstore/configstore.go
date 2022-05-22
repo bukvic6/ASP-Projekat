@@ -1,6 +1,7 @@
 package configstore
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	"os"
@@ -24,4 +25,24 @@ func New() (*ConfigStore, error) {
 	return &ConfigStore{
 		cli: client,
 	}, nil
+}
+
+func (ps *ConfigStore) Post(config *Config) (*Config, error) {
+	kv := ps.cli.KV()
+
+	sid, rid := generateKey()
+	config.Id = rid
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &api.KVPair{Key: sid, Value: data}
+	_, err = kv.Put(p, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

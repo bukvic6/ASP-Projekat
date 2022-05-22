@@ -1,17 +1,18 @@
 package main
 
 import (
+	cs "Ali/configstore"
 	"encoding/json"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
 )
 
-func decodeBody(r io.Reader) (*Config, error) {
+func decodeBody(r io.Reader) (*cs.Config, error) {
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
-	var rt Config
+	var rt cs.Config
 	if err := dec.Decode(&rt); err != nil {
 		return nil, err
 	}
