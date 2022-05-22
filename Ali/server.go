@@ -46,6 +46,14 @@ func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) 
 	}
 	renderJSON(w, allTasks)
 }
+func (cs *configServer) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
+	allTasks, err := cs.store.GetAllGroups()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, allTasks)
+}
 func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -98,6 +106,116 @@ func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *htt
 		return
 	}
 	renderJSON(w, config)
+}
+func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeBodyGroups(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	group, err := cs.store.Group(rt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, group)
+}
+func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+	rt, err := decodeBodyGroups(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id := mux.Vars(req)["id"]
+	rt.Id = id
+	group, err := cs.store.AddConfigGroupVersion(rt)
+	renderJSON(w, group)
+
+}
+func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	group, err := cs.store.DeleteGroup(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, group)
+
+}
+func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	rt, err := decodeConfig(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	group, err := cs.store.GetGroup(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	list := group.Config
+	list = append(list, rt)
+	renderJSON(w, group)
+
+}
+func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	group, err := cs.store.GetGroup(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, group)
+}
+func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	group, err := cs.store.GetConfGroupVersions(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, group)
 }
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {

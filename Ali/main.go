@@ -28,21 +28,18 @@ func main() {
 	}
 	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
+	router.HandleFunc("/configGroups/", server.getAllGroupHandler).Methods("GET")
 	router.HandleFunc("/configs/{id}", server.getConfigVersionsHandler).Methods("GET")
 	router.HandleFunc("/configs/{id}/{version}", server.getConfigHandler).Methods("GET")
 	router.HandleFunc("/config/{id}", server.addConfigVersion).Methods("POST")
 	router.HandleFunc("/config/{id}/{version}", server.delConfigHandler).Methods("DELETE")
-	/*	router.HandleFunc("/config", server.createPostHandler).Methods("POST")
-		router.HandleFunc("/configGroups", server.createGroupHandler).Methods("POST")
-		router.HandleFunc("/config/{id}/{version}", server.delPostHandler).Methods("DELETE")
-		router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
-		router.HandleFunc("/configGroups", server.getAllGroupHandler).Methods("GET")
-		router.HandleFunc("/configGroups/{version}/{id}", server.getGroupHandler).Methods("GET")
-		router.HandleFunc("/config/{id}/{version}", server.getConfigHandler).Methods("GET")
-		router.HandleFunc("/configGroups/{version}/{id}", server.delPostGroupHandler).Methods("DELETE")
-		router.HandleFunc("/configGroups/{version}/{id}", server.createPutHandler).Methods("PUT")
-		router.HandleFunc("/configGroups/{id}", server.createGroupVersionHandler).Methods("PUT")
-		router.HandleFunc("/config/{id}", server.createConfigVersionHandler).Methods("PUT")*/
+	router.HandleFunc("/configGroup", server.createGroupHandler).Methods("POST")
+	router.HandleFunc("/configGroups/", server.getAllGroupHandler).Methods("GET")
+	router.HandleFunc("/configGroup/{id}", server.addConfigGroupVersion).Methods("POST")
+	router.HandleFunc("/configGroup/{id}", server.getConfigGroupVersions).Methods("GET")
+	router.HandleFunc("/configGroup/{id}/{version}", server.getGroupVersionsHandler).Methods("GET")
+	router.HandleFunc("/configGroup/{id}/{version}", server.delGroupHandler).Methods("DELETE")
+	router.HandleFunc("/configGroup/{id}/{version}", server.addConfig).Methods("PUT")
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 	go func() {

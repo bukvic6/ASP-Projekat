@@ -65,6 +65,25 @@ func (cs *ConfigStore) GetAll() ([]*Config, error) {
 
 	return posts, nil
 }
+func (cs *ConfigStore) GetAllGroups() ([]*Group, error) {
+	kv := cs.cli.KV()
+	data, _, err := kv.List(allG, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	posts := []*Group{}
+	for _, pair := range data {
+		group := &Group{}
+		err = json.Unmarshal(pair.Value, group)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, group)
+	}
+
+	return posts, nil
+}
 func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	kv := cs.cli.KV()
 	data, err := json.Marshal(config)
@@ -121,5 +140,82 @@ func (cs *ConfigStore) GetConfVersions(id string) ([]*Config, error) {
 
 	}
 	return configList, nil
+
+}
+func (cs *ConfigStore) Group(group *Group) (*Group, error) {
+	kv := cs.cli.KV()
+
+	sid, rid := generateGroupKey(group.Version)
+	group.Id = rid
+
+	data, err := json.Marshal(group)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &api.KVPair{Key: sid, Value: data}
+	_, err = kv.Put(p, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return group, nil
+}
+func (cs *ConfigStore) AddConfigGroupVersion(group *Group) (*Group, error) {
+	kv := cs.cli.KV()
+	data, err := json.Marshal(group)
+
+	sid := configKeyGroupVersion(group.Id, group.Version)
+
+	p := &api.KVPair{Key: sid, Value: data}
+	_, err = kv.Put(p, nil)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+func (cs *ConfigStore) DeleteGroup(id string, version string) (map[string]string, error) {
+	kv := cs.cli.KV()
+	_, err := kv.Delete(configKeyGroupVersion(id, version), nil)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"deleted": id}, nil
+}
+func (cs *ConfigStore) GetGroup(id string, version string) (*Group, error) {
+	kv := cs.cli.KV()
+
+	sid := configKeyGroupVersion(id, version)
+	pair, _, err := kv.Get(sid, nil)
+	if err != nil {
+		return nil, err
+	}
+	group := &Group{}
+	err = json.Unmarshal(pair.Value, pair)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+func (cs *ConfigStore) GetConfGroupVersions(id string) ([]*Group, error) {
+	kv := cs.cli.KV()
+	sid := configKeyGroup(id)
+	data, _, err := kv.List(sid, nil)
+	if err != nil {
+		return nil, err
+
+	}
+	groupList := []*Group{}
+
+	for _, pair := range data {
+		group := &Group{}
+		err = json.Unmarshal(pair.Value, group)
+		if err != nil {
+			return nil, err
+		}
+		groupList = append(groupList, group)
+
+	}
+	return groupList, nil
 
 }

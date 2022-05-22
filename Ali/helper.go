@@ -18,12 +18,22 @@ func decodeBody(r io.Reader) (*cs.Config, error) {
 	}
 	return &rt, nil
 }
-
-func decodeBodyGroups(r io.Reader) (*Group, error) {
+func decodeConfig(r io.Reader) (*cs.ConfigG, error) {
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
-	var rt Group
+	var rt cs.ConfigG
+	if err := dec.Decode(&rt); err != nil {
+		return nil, err
+	}
+	return &rt, nil
+}
+
+func decodeBodyGroups(r io.Reader) (*cs.Group, error) {
+	dec := json.NewDecoder(r)
+	dec.DisallowUnknownFields()
+
+	var rt cs.Group
 	if err := dec.Decode(&rt); err != nil {
 		return nil, err
 	}
