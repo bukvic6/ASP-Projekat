@@ -69,13 +69,35 @@ func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	kv := cs.cli.KV()
 	data, err := json.Marshal(config)
 
-	sid := configKeyVerion(config.Id, config.Version)
+	sid := configKeyVersion(config.Id, config.Version)
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	return config, nil
+}
+func (cs *ConfigStore) GetConf(id string, version string) (*Config, error) {
+	kv := cs.cli.KV()
+
+	sid := configKeyVersion(id, version)
+	pair, _, err := kv.Get(sid, nil)
+	if err != nil {
+		return nil, err
+	}
+	config := &Config{}
+	err = json.Unmarshal(pair.Value, pair)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+func (cs *ConfigStore) Delete(id string, version string) (map[string]string, error) {
+	kv := cs.cli.KV()
+	_, err := kv.Delete(configKeyVersion(id, version), nil)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"deleted": id}, nil
 }

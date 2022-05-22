@@ -69,6 +69,27 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 	renderJSON(w, config)
 
 }
+func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	config, err := cs.store.GetConf(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, config)
+}
+func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	config, err := cs.store.Delete(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, config)
+
+}
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")

@@ -15,7 +15,7 @@ func generateKey() (string, string) {
 	id := uuid.New().String()
 	return fmt.Sprintf(config, id), id
 }
-func configKeyVerion(id string, version string) string {
+func configKeyVersion(id string, version string) string {
 	return fmt.Sprintf(configV, id, version)
 
 }
