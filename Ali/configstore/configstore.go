@@ -27,8 +27,8 @@ func New() (*ConfigStore, error) {
 	}, nil
 }
 
-func (ps *ConfigStore) Post(config *Config) (*Config, error) {
-	kv := ps.cli.KV()
+func (cs *ConfigStore) Post(config *Config) (*Config, error) {
+	kv := cs.cli.KV()
 
 	sid, rid := generateKey()
 	config.Id = rid
@@ -45,4 +45,23 @@ func (ps *ConfigStore) Post(config *Config) (*Config, error) {
 	}
 
 	return config, nil
+}
+func (cs *ConfigStore) GetAll() ([]*Config, error) {
+	kv := cs.cli.KV()
+	data, _, err := kv.List(all, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	posts := []*Config{}
+	for _, pair := range data {
+		post := &Config{}
+		err = json.Unmarshal(pair.Value, post)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	return posts, nil
 }

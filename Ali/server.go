@@ -37,6 +37,14 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 	}
 	renderJSON(w, post)
 }
+func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
+	allTasks, err := cs.store.GetAll()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, allTasks)
+}
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")

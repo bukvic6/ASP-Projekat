@@ -7,6 +7,7 @@ import (
 
 const (
 	config = "config/%s"
+	all    = "config"
 )
 
 func generateKey() (string, string) {
