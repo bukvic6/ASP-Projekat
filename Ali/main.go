@@ -28,6 +28,7 @@ func main() {
 	}
 	router.HandleFunc("/config/", server.createPostHandler).Methods("POST")
 	router.HandleFunc("/configs/", server.getAllHandler).Methods("GET")
+	router.HandleFunc("/configs/{id}", server.getConfigVersionsHandler).Methods("GET")
 	router.HandleFunc("/configs/{id}/{version}", server.getConfigHandler).Methods("GET")
 	router.HandleFunc("/config/{id}", server.addConfigVersion).Methods("POST")
 	router.HandleFunc("/config/{id}/{version}", server.delConfigHandler).Methods("DELETE")

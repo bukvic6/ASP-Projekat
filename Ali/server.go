@@ -90,6 +90,15 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 	renderJSON(w, config)
 
 }
+func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	config, err := cs.store.GetConfVersions(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, config)
+}
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")

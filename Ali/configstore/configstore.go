@@ -30,7 +30,7 @@ func New() (*ConfigStore, error) {
 func (cs *ConfigStore) Post(config *Config) (*Config, error) {
 	kv := cs.cli.KV()
 
-	sid, rid := generateKey()
+	sid, rid := generateKey(config.Version)
 	config.Id = rid
 
 	data, err := json.Marshal(config)
@@ -100,4 +100,26 @@ func (cs *ConfigStore) Delete(id string, version string) (map[string]string, err
 		return nil, err
 	}
 	return map[string]string{"deleted": id}, nil
+}
+func (cs *ConfigStore) GetConfVersions(id string) ([]*Config, error) {
+	kv := cs.cli.KV()
+	sid := configKey(id)
+	data, _, err := kv.List(sid, nil)
+	if err != nil {
+		return nil, err
+
+	}
+	configList := []*Config{}
+
+	for _, pair := range data {
+		config := &Config{}
+		err = json.Unmarshal(pair.Value, config)
+		if err != nil {
+			return nil, err
+		}
+		configList = append(configList, config)
+
+	}
+	return configList, nil
+
 }
