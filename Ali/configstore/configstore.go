@@ -65,3 +65,17 @@ func (cs *ConfigStore) GetAll() ([]*Config, error) {
 
 	return posts, nil
 }
+func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
+	kv := cs.cli.KV()
+	data, err := json.Marshal(config)
+
+	sid := configKeyVerion(config.Id, config.Version)
+
+	p := &api.KVPair{Key: sid, Value: data}
+	_, err = kv.Put(p, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}

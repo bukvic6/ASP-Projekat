@@ -3,6 +3,7 @@ package main
 import (
 	cs "Ali/configstore"
 	"errors"
+	"github.com/gorilla/mux"
 	"mime"
 	"net/http"
 )
@@ -44,6 +45,29 @@ func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 	renderJSON(w, allTasks)
+}
+func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Request) {
+	contentType := req.Header.Get("Content-Type")
+	mediatype, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if mediatype != "application/json" {
+		err := errors.New("Expect application/json Content-Type")
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+	rt, err := decodeBody(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	id := mux.Vars(req)["id"]
+	rt.Id = id
+	config, err := cs.store.AddConfigVersion(rt)
+	renderJSON(w, config)
+
 }
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
