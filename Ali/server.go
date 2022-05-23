@@ -225,6 +225,17 @@ func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.
 	}
 	renderJSON(w, group)
 }
+func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	labels := mux.Vars(req)["labels"]
+	group, err := cs.store.FilterGroup(id, version, labels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, group)
+}
 
 /*func (ts *service) createConfigVersionHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")

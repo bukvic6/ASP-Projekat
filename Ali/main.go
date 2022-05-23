@@ -37,6 +37,7 @@ func main() {
 	router.HandleFunc("/group/{id}", server.addConfigGroupVersion).Methods("POST")
 	router.HandleFunc("/group/{id}", server.getConfigGroupVersions).Methods("GET")
 	router.HandleFunc("/group/{id}/{version}", server.getGroupVersionsHandler).Methods("GET")
+	router.HandleFunc("/group/{id}/{version}/{labels}", server.filter).Methods("GET")
 	router.HandleFunc("/group/{id}/{version}", server.delGroupHandler).Methods("DELETE")
 	router.HandleFunc("/group/{id}/{version}", server.addConfig).Methods("PUT")
 
