@@ -106,7 +106,7 @@ func (cs *ConfigStore) GetConf(id string, version string) (*Config, error) {
 		return nil, err
 	}
 	config := &Config{}
-	err = json.Unmarshal(pair.Value, pair)
+	err = json.Unmarshal(pair.Value, config)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func (cs *ConfigStore) GetGroup(id string, version string) (*Group, error) {
 		return nil, err
 	}
 	group := &Group{}
-	err = json.Unmarshal(pair.Value, pair)
+	err = json.Unmarshal(pair.Value, group)
 	if err != nil {
 		return nil, err
 	}
@@ -218,4 +218,18 @@ func (cs *ConfigStore) GetConfGroupVersions(id string) ([]*Group, error) {
 	}
 	return groupList, nil
 
+}
+
+func (cs *ConfigStore) Put(group *Group) (*Group, error) {
+	kv := cs.cli.KV()
+	data, err := json.Marshal(group)
+
+	sid := configKeyGroupVersion(group.Id, group.Version)
+
+	p := &api.KVPair{Key: sid, Value: data}
+	_, err = kv.Put(p, nil)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
 }

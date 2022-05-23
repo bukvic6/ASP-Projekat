@@ -165,9 +165,17 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 		return
 	}
 	renderJSON(w, group)
-
 }
+
 func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	_, err := cs.store.DeleteGroup(id, version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -181,22 +189,22 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rt, err := decodeConfig(req.Body)
+	rt, err := decodeBodyGroups(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	id := mux.Vars(req)["id"]
-	version := mux.Vars(req)["version"]
-	group, err := cs.store.GetGroup(id, version)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	list := group.Config
-	list = append(list, rt)
-	renderJSON(w, group)
+	id2 := mux.Vars(req)["id"]
+	version2 := mux.Vars(req)["version"]
+	rt.Id = id2
+	rt.Version = version2
 
+	nova, err := cs.store.Put(rt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, nova)
 }
 func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]

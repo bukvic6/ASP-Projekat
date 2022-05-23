@@ -5,6 +5,7 @@ type Config struct {
 	Version string            `json:"version"`
 	Entries map[string]string `json:"entries"`
 }
+
 type ConfigG struct {
 	Entries map[string]string `json:"entries"`
 }

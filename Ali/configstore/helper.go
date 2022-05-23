@@ -11,9 +11,9 @@ const (
 	configV  = "config/%s/%s"
 	all      = "config"
 
-	group         = "configGroup/%s/%s"
-	configGroupId = "configGroup/%s"
-	allG          = "configGroups"
+	group         = "group/%s/%s"
+	configGroupId = "group/%s"
+	allG          = "group"
 )
 
 func generateKey(version string) (string, string) {
