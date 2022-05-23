@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	"os"
-	"sort"
-	"strings"
 )
 
 type ConfigStore struct {
@@ -230,49 +228,6 @@ func (cs *ConfigStore) Put(group *Group) (*Group, error) {
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
-	if err != nil {
-		return nil, err
-	}
-	return group, nil
-}
-func (cs *ConfigStore) FilterGroup(id string, version string, labels string) (*ConfigG, error) {
-	kv := cs.cli.KV()
-
-	sid := configKeyGroupVersion(id, version)
-	pair, _, err := kv.Get(sid, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	entries := strings.Split(labels, "; ")
-	//  https://stackoverflow.com/questions/21362950/getting-a-slice-of-keys-from-a-map
-	m := make(map[string]string)
-	for _, e := range entries {
-		parts := strings.Split(e, ":")
-		m[parts[0]] = parts[1]
-	}
-	group := &Group{}
-
-	for i := 0; i < len(group.Config); i++ {
-		entries := group.Config[i].Entries
-		if len(m) == len(group.Config[i].Entries) {
-			keys := make([]string, 0, len(entries))
-			for k := range entries {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			fmt.Println(keys)
-			err = json.Unmarshal(pair.Value, keys)
-			if err != nil {
-				return nil, err
-			}
-		//	Ovde treba dovrsiti kod
-
-		}
-
-	}
-
-	err = json.Unmarshal(pair.Value, keys)
 	if err != nil {
 		return nil, err
 	}
