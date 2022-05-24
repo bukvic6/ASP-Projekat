@@ -2,6 +2,7 @@ package configstore
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	"os"
@@ -87,6 +88,9 @@ func (cs *ConfigStore) GetAllGroups() ([]*Group, error) {
 func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	kv := cs.cli.KV()
 	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
 
 	sid := configKeyVersion(config.Id, config.Version)
 
@@ -187,8 +191,8 @@ func (cs *ConfigStore) GetGroup(id string, version string) (*Group, error) {
 
 	sid := configKeyGroupVersion(id, version)
 	pair, _, err := kv.Get(sid, nil)
-	if err != nil {
-		return nil, err
+	if err != nil || pair == nil {
+		return nil, errors.New("not existing")
 	}
 	group := &Group{}
 	err = json.Unmarshal(pair.Value, group)

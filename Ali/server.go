@@ -23,7 +23,7 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 	}
 
 	if mediatype != "application/json" {
-		err := errors.New("Expect application/json Content-Type")
+		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -64,7 +64,7 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 		return
 	}
 	if mediatype != "application/json" {
-		err := errors.New("Expect application/json Content-Type")
+		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -76,6 +76,9 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 	id := mux.Vars(req)["id"]
 	rt.Id = id
 	config, err := cs.store.AddConfigVersion(rt)
+	if err != nil {
+		http.Error(w, "version already exist", http.StatusBadRequest)
+	}
 	renderJSON(w, config)
 
 }
@@ -84,6 +87,7 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 	version := mux.Vars(req)["version"]
 	config, err := cs.store.GetConf(id, version)
 	if err != nil {
+		err := errors.New("not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -94,6 +98,7 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 	version := mux.Vars(req)["version"]
 	config, err := cs.store.Delete(id, version)
 	if err != nil {
+		err := errors.New("not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -104,6 +109,8 @@ func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *htt
 	id := mux.Vars(req)["id"]
 	config, err := cs.store.GetConfVersions(id)
 	if err != nil {
+		err := errors.New("not found")
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -118,7 +125,7 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 	}
 
 	if mediatype != "application/json" {
-		err := errors.New("Expect application/json Content-Type")
+		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -143,7 +150,7 @@ func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.R
 		return
 	}
 	if mediatype != "application/json" {
-		err := errors.New("Expect application/json Content-Type")
+		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -186,7 +193,7 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if mediatype != "application/json" {
-		err := errors.New("Expect application/json Content-Type")
+		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -211,8 +218,9 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	group, err := cs.store.GetGroup(id, version)
-	if err != nil {
+	group, ok := cs.store.GetGroup(id, version)
+	if ok != nil {
+		err := errors.New("key not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -275,5 +283,5 @@ func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
 		}
 
 	}
-	
+
 }
