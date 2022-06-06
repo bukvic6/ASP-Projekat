@@ -276,9 +276,7 @@ func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
 
 			}
 			if check != true {
-
 				renderJSON(w, group.Config[i])
-
 			}
 		}
 
