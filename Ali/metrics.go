@@ -81,11 +81,16 @@ var (
 			Name: "add_config_to_group_hit_total",
 			Help: "Total number of add config to group hits",
 		})
+	filterHits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "add_filter_hit_total",
+			Help: "Total number of filter hits",
+		})
 	metricsList = []prometheus.Collector{
 		createConfigHits, getAllHits, getConfigVersionsHits, getConfigHits,
 		addConfigVersionHits, delConfigVersionHits, createGroupHits, getAllGroupHits,
 		addGroupVersionHits, getConfigGroupVersionsHits, getGroupVersionHits, delgroupHits,
-		addConfigToGroupHits,
+		addConfigToGroupHits, filterHits, httpHits,
 	}
 	prometheusRegistry = prometheus.NewRegistry()
 )
@@ -184,6 +189,13 @@ func countGetAll(f func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 	return func(w http.ResponseWriter, r *http.Request) {
 		httpHits.Inc()
 		getAllHits.Inc()
+		f(w, r) // original function call
+	}
+}
+func filter(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		httpHits.Inc()
+		filterHits.Inc()
 		f(w, r) // original function call
 	}
 }

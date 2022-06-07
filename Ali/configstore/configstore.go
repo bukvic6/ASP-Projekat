@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
 	"os"
+	"sort"
 )
 
 type ConfigStore struct {
@@ -47,6 +49,27 @@ func (cs *ConfigStore) Post(config *Config) (*Config, error) {
 
 	return config, nil
 }
+func (cs *ConfigStore) CheckId(reqId string) bool {
+	kv := cs.cli.KV()
+	k, _, err := kv.Get(reqId, nil)
+	if err == nil || k != nil {
+		return true
+	}
+	return false
+
+}
+
+func (cs *ConfigStore) SaveId() string {
+	kv := cs.cli.KV()
+	idempotencyId := uuid.New().String()
+	p := &api.KVPair{Key: idempotencyId, Value: nil}
+	_, err := kv.Put(p, nil)
+	if err != nil {
+		return "error"
+	}
+	return idempotencyId
+}
+
 func (cs *ConfigStore) GetAll() ([]*Config, error) {
 	kv := cs.cli.KV()
 	data, _, err := kv.List(all, nil)
@@ -148,9 +171,23 @@ func (cs *ConfigStore) GetConfVersions(id string) ([]*Config, error) {
 }
 func (cs *ConfigStore) Group(group *Group) (*Group, error) {
 	kv := cs.cli.KV()
-
 	sid, rid := generateGroupKey(group.Version)
 	group.Id = rid
+
+	for _, v := range group.Config {
+		labels := ""
+		keys := make([]string, 0, len(v.Entries))
+		for k, _ := range v.Entries {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			labels += k + ":" + v.Entries[k] + ","
+		}
+		labels = labels[:len(labels)-1]
+		configKeyGroupVersionlabel(group.Id, group.Version, labels)
+
+	}
 
 	data, err := json.Marshal(group)
 	if err != nil {
@@ -164,7 +201,32 @@ func (cs *ConfigStore) Group(group *Group) (*Group, error) {
 	}
 
 	return group, nil
+
+	/*	for _, v := range group.Config {
+		labels := ""
+		keys := make([]string, 0, len(v.Entries))
+		for k, _ := range v.Entries {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			labels += k + ":" + v.Entries[k] + ";"
+		}
+		labels = labels[:len(labels)-1]
+		sid, rid := generateGroupKey(group.Version, labels)
+		group.Id = rid
+		data, err := json.Marshal(group)
+		if err != nil {
+			return nil, err
+		}
+		p := &api.KVPair{Key: sid, Value: data}
+		_, err = kv.Put(p, nil)
+		if err != nil {
+			return nil, err
+		}*/
+
 }
+
 func (cs *ConfigStore) AddConfigGroupVersion(group *Group) (*Group, error) {
 	kv := cs.cli.KV()
 	data, err := json.Marshal(group)
@@ -223,6 +285,26 @@ func (cs *ConfigStore) GetConfGroupVersions(id string) ([]*Group, error) {
 	return groupList, nil
 
 }
+
+/*func (cs *ConfigStore) Filter(id string, version string, label string) ([]*ConfigG, error) {
+	kv := cs.cli.KV()
+	data, _, err := kv.List(filter(id, version, label), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	configs := []*ConfigG{}
+	for _, pair := range data {
+		config := &ConfigG{}
+		err = json.Unmarshal(pair.Value, config)
+		if err != nil {
+			return nil, err
+		}
+		configs = append(configs, config)
+	}
+
+	return configs, nil
+}*/
 
 func (cs *ConfigStore) Put(group *Group) (*Group, error) {
 	kv := cs.cli.KV()

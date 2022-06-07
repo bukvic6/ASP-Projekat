@@ -16,6 +16,7 @@ type configServer struct {
 
 func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
+	reqKey := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -33,12 +34,22 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if cs.store.CheckId(reqKey) == true {
+		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+
+		return
+	}
+
+	idempotencyKey := ""
+	idempotencyKey = cs.store.SaveId()
+
 	post, err := cs.store.Post(rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	renderJSON(w, post)
+	w.Write([]byte("\n\nIdempotency Key: " + idempotencyKey))
 }
 func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
 	allTasks, err := cs.store.GetAll()
@@ -107,6 +118,7 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 }
 func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
+
 	config, err := cs.store.GetConfVersions(id)
 	if err != nil {
 		err := errors.New("not found")
@@ -118,6 +130,7 @@ func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *htt
 }
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
+	reqKey := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -131,16 +144,25 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 	}
 
 	rt, err := decodeBodyGroups(req.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err != nil || rt.Version == "" || rt.Config == nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
+	if cs.store.CheckId(reqKey) == true {
+		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+
+		return
+	}
+
+	idempotencyKey := ""
+	idempotencyKey = cs.store.SaveId()
 	group, err := cs.store.Group(rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	renderJSON(w, group)
+	w.Write([]byte("\n\nIdempotency Key: " + idempotencyKey))
 }
 func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
@@ -235,6 +257,26 @@ func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.
 	}
 	renderJSON(w, group)
 }
+
+/*func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
+	id := mux.Vars(req)["id"]
+	version := mux.Vars(req)["version"]
+	labels := mux.Vars(req)["labels"]
+	list := strings.Split(labels, ";")
+	sort.Strings(list)
+	sortedLabel := ""
+	for _, v := range list {
+		sortedLabel += v + ";"
+	}
+	sortedLabel = sortedLabel[:len(sortedLabel)-1]
+	returnConfigs, error := cs.store.Filter(id, version, sortedLabel)
+
+	if error != nil {
+		renderJSON(w, "Error!")
+	}
+	renderJSON(w, returnConfigs)
+}*/
+
 func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -279,7 +321,5 @@ func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
 				renderJSON(w, group.Config[i])
 			}
 		}
-
 	}
-
 }

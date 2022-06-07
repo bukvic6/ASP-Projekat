@@ -11,6 +11,7 @@ const (
 	configV  = "config/%s/%s"
 	all      = "config"
 
+	grouplabel    = "group/%s/%s/%s"
 	group         = "group/%s/%s"
 	configGroupId = "group/%s"
 	allG          = "group"
@@ -34,6 +35,10 @@ func generateGroupKey(version string) (string, string) {
 }
 func configKeyGroupVersion(id string, version string) string {
 	return fmt.Sprintf(group, id, version)
+
+}
+func configKeyGroupVersionlabel(id string, version string, labels string) string {
+	return fmt.Sprintf(group, id, version, labels)
 
 }
 func configKeyGroup(id string) string {
