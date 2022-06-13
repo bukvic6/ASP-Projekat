@@ -38,7 +38,7 @@ func configKeyGroupVersion(id string, version string) string {
 
 }
 func configKeyGroupVersionlabel(id string, version string, labels string) string {
-	return fmt.Sprintf(group, id, version, labels)
+	return fmt.Sprintf(grouplabel, id, version, labels)
 
 }
 func configKeyGroup(id string) string {

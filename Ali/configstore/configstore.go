@@ -52,10 +52,11 @@ func (cs *ConfigStore) Post(config *Config) (*Config, error) {
 func (cs *ConfigStore) CheckId(reqId string) bool {
 	kv := cs.cli.KV()
 	k, _, err := kv.Get(reqId, nil)
-	if err == nil || k != nil {
-		return true
+	if err != nil || k == nil {
+		return false
 	}
-	return false
+
+	return true
 
 }
 
@@ -116,6 +117,11 @@ func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	}
 
 	sid := configKeyVersion(config.Id, config.Version)
+	_, err = cs.GetConf(config.Id, config.Version)
+
+	if err == nil {
+		return nil, errors.New("version already exists! ")
+	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)
@@ -232,6 +238,11 @@ func (cs *ConfigStore) AddConfigGroupVersion(group *Group) (*Group, error) {
 	data, err := json.Marshal(group)
 
 	sid := configKeyGroupVersion(group.Id, group.Version)
+	_, err = cs.GetGroup(group.Id, group.Version)
+
+	if err == nil {
+		return nil, errors.New("version already exists! ")
+	}
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)

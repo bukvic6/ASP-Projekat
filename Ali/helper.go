@@ -2,6 +2,7 @@ package main
 
 import (
 	cs "Ali/configstore"
+	"Ali/tracer"
 	"encoding/json"
 	"github.com/google/uuid"
 	"io"
@@ -19,7 +20,10 @@ func decodeBody(r io.Reader) (*cs.Config, error) {
 	return &rt, nil
 }
 
-func decodeBodyGroups(r io.Reader) (*cs.Group, error) {
+func decodeBodyGroups(ctx context.Context, r io.Reader) (*cs.Group, error) {
+
+	span := tracer.StartSpanFromContext(ctx, "decodeBody")
+	defer span.Finish()
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
