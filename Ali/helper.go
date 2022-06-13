@@ -2,14 +2,17 @@ package main
 
 import (
 	cs "Ali/configstore"
-	"Ali/tracer"
+	tracer "Ali/tracer"
 	"encoding/json"
 	"github.com/google/uuid"
+	"golang.org/x/net/context"
 	"io"
 	"net/http"
 )
 
-func decodeBody(r io.Reader) (*cs.Config, error) {
+func decodeBody(ctx context.Context, r io.Reader) (*cs.Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "decodeBody")
+	defer span.Finish()
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
@@ -34,7 +37,9 @@ func decodeBodyGroups(ctx context.Context, r io.Reader) (*cs.Group, error) {
 	return &rt, nil
 }
 
-func renderJSON(w http.ResponseWriter, v interface{}) {
+func renderJSON(ctx context.Context, w http.ResponseWriter, v interface{}) {
+	span := tracer.StartSpanFromContext(ctx, "decodeBody")
+	defer span.Finish()
 	js, err := json.Marshal(v)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

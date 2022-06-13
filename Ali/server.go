@@ -2,19 +2,62 @@ package main
 
 import (
 	cs "Ali/configstore"
+	"Ali/tracer"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
+	"golang.org/x/net/context"
+	"io"
 	"mime"
 	"net/http"
 	"sort"
 	"strings"
 )
 
+const (
+	name = "config_service"
+)
+
 type configServer struct {
-	store *cs.ConfigStore
+	store  *cs.ConfigStore
+	tracer opentracing.Tracer
+	closer io.Closer
+}
+
+func NewCOnfigServer() (*configServer, error) {
+	store, err := cs.New()
+	if err != nil {
+		return nil, err
+	}
+
+	tracer, closer := tracer.Init(name)
+	opentracing.SetGlobalTracer(tracer)
+	return &configServer{
+		store:  store,
+		tracer: tracer,
+		closer: closer,
+	}, nil
+}
+func (c *configServer) GetTracer() opentracing.Tracer {
+	return c.tracer
+}
+
+func (c *configServer) GetCloser() io.Closer {
+	return c.closer
+}
+
+func (c *configServer) CloseTracer() error {
+	return c.closer.Close()
 }
 
 func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	span.LogFields(
+		tracer.LogString("Handler", fmt.Sprintf("Handling greate config at %s\n", req.URL.Path)),
+	)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -29,13 +72,13 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	rt, err := decodeBody(req.Body)
+	rt, err := decodeBody(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if reqKey == "" {
-		renderJSON(w, "Idempotency-key is missing")
+		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
 	if cs.store.CheckId(reqKey) == true {
@@ -47,31 +90,40 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 	idempotencyKey := ""
 	idempotencyKey = cs.store.SaveId()
 
-	post, err := cs.store.Post(rt)
+	post, err := cs.store.Post(ctx, rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, post)
+	renderJSON(ctx, w, post)
 	w.Write([]byte(idempotencyKey))
 }
 func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
-	allTasks, err := cs.store.GetAll()
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	allTasks, err := cs.store.GetAll(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, allTasks)
+	renderJSON(ctx, w, allTasks)
 }
 func (cs *configServer) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
-	allTasks, err := cs.store.GetAllGroups()
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	allTasks, err := cs.store.GetAllGroups(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, allTasks)
+	renderJSON(ctx, w, allTasks)
 }
 func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -85,7 +137,7 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 		return
 	}
 	if reqKey == "" {
-		renderJSON(w, "Idempotency-key is missing")
+		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
 	if cs.store.CheckId(reqKey) == true {
@@ -96,57 +148,70 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 
 	idempotencyKey := ""
 	idempotencyKey = cs.store.SaveId()
-	rt, err := decodeBody(req.Body)
+	rt, err := decodeBody(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	id := mux.Vars(req)["id"]
 	rt.Id = id
-	config, err := cs.store.AddConfigVersion(rt)
+	config, err := cs.store.AddConfigVersion(ctx, rt)
 	if err != nil {
 		http.Error(w, "version already exist", http.StatusBadRequest)
 	}
-	renderJSON(w, config)
+	renderJSON(ctx, w, config)
 	w.Write([]byte(idempotencyKey))
 
 }
 func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	config, err := cs.store.GetConf(id, version)
+	config, err := cs.store.GetConf(ctx, id, version)
 	if err != nil {
 		err := errors.New("not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, config)
+	renderJSON(ctx, w, config)
 }
 func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	config, err := cs.store.Delete(id, version)
+	config, err := cs.store.Delete(ctx, id, version)
 	if err != nil {
 		err := errors.New("not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, config)
+	renderJSON(ctx, w, config)
 
 }
 func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 
-	config, err := cs.store.GetConfVersions(id)
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
+	config, err := cs.store.GetConfVersions(ctx, id)
 	if err != nil {
 		err := errors.New("not found")
 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, config)
+	renderJSON(ctx, w, config)
 }
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
+
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -161,13 +226,13 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	rt, err := decodeBodyGroups(req.Body)
+	rt, err := decodeBodyGroups(ctx, req.Body)
 	if err != nil || rt.Version == "" || rt.Config == nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 	if reqKey == "" {
-		renderJSON(w, "Idempotency-key is missing")
+		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
 	if cs.store.CheckId(reqKey) == true {
@@ -178,15 +243,18 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 
 	idempotencyKey := ""
 	idempotencyKey = cs.store.SaveId()
-	group, err := cs.store.Group(rt)
+	group, err := cs.store.Group(ctx, rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, group)
+	renderJSON(ctx, w, group)
 	w.Write([]byte(idempotencyKey))
 }
 func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
 
@@ -201,7 +269,7 @@ func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.R
 		return
 	}
 	if reqKey == "" {
-		renderJSON(w, "Idempotency-key is missing")
+		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
 	if cs.store.CheckId(reqKey) == true {
@@ -211,35 +279,41 @@ func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.R
 
 	idempotencyKey := ""
 	idempotencyKey = cs.store.SaveId()
-	rt, err := decodeBodyGroups(req.Body)
+	rt, err := decodeBodyGroups(ctx, req.Body)
 	if err != nil {
 		http.Error(w, "incvalid formtat", http.StatusBadRequest)
 	}
 	id := mux.Vars(req)["id"]
 	rt.Id = id
-	group, err := cs.store.AddConfigGroupVersion(rt)
+	group, err := cs.store.AddConfigGroupVersion(ctx, rt)
 	if err != nil {
 		http.Error(w, "version alredy exitst", http.StatusBadRequest)
 	}
-	renderJSON(w, group)
+	renderJSON(ctx, w, group)
 	w.Write([]byte(idempotencyKey))
 
 }
 func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	group, err := cs.store.DeleteGroup(id, version)
+	group, err := cs.store.DeleteGroup(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, group)
+	renderJSON(ctx, w, group)
 }
 
 func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	_, err := cs.store.DeleteGroup(id, version)
+	_, err := cs.store.DeleteGroup(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -258,7 +332,7 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rt, err := decodeBodyGroups(req.Body)
+	rt, err := decodeBodyGroups(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -268,39 +342,48 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 	rt.Id = id2
 	rt.Version = version2
 
-	nova, err := cs.store.Put(rt)
+	nova, err := cs.store.Put(ctx, rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, nova)
+	renderJSON(ctx, w, nova)
 }
 func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
-	group, ok := cs.store.GetGroup(id, version)
+	group, ok := cs.store.GetGroup(ctx, id, version)
 	if ok != nil {
 		err := errors.New("key not found")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, group)
+	renderJSON(ctx, w, group)
 }
 func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
-	group, err := cs.store.GetConfGroupVersions(id)
+	group, err := cs.store.GetConfGroupVersions(ctx, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, group)
+	renderJSON(ctx, w, group)
 }
 
 func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
+	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	defer span.Finish()
+	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
 	labels := mux.Vars(req)["labels"]
-	group, err := cs.store.GetGroup(id, version)
+	group, err := cs.store.GetGroup(ctx, id, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -337,7 +420,7 @@ func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
 
 			}
 			if check != true {
-				renderJSON(w, group.Config[i])
+				renderJSON(ctx, w, group.Config[i])
 			}
 		}
 	}

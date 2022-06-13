@@ -1,11 +1,13 @@
 package configstore
 
 import (
+	"Ali/tracer"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
+	"golang.org/x/net/context"
 	"os"
 	"sort"
 )
@@ -30,7 +32,9 @@ func New() (*ConfigStore, error) {
 	}, nil
 }
 
-func (cs *ConfigStore) Post(config *Config) (*Config, error) {
+func (cs *ConfigStore) Post(ctx context.Context, config *Config) (*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "CreateConfig")
+	defer span.Finish()
 	kv := cs.cli.KV()
 
 	sid, rid := generateKey(config.Version)
@@ -71,7 +75,9 @@ func (cs *ConfigStore) SaveId() string {
 	return idempotencyId
 }
 
-func (cs *ConfigStore) GetAll() ([]*Config, error) {
+func (cs *ConfigStore) GetAll(ctx context.Context) ([]*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "Get all")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	data, _, err := kv.List(all, nil)
 	if err != nil {
@@ -90,7 +96,9 @@ func (cs *ConfigStore) GetAll() ([]*Config, error) {
 
 	return posts, nil
 }
-func (cs *ConfigStore) GetAllGroups() ([]*Group, error) {
+func (cs *ConfigStore) GetAllGroups(ctx context.Context) ([]*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "Get groups")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	data, _, err := kv.List(allG, nil)
 	if err != nil {
@@ -109,7 +117,9 @@ func (cs *ConfigStore) GetAllGroups() ([]*Group, error) {
 
 	return posts, nil
 }
-func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
+func (cs *ConfigStore) AddConfigVersion(ctx context.Context, config *Config) (*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "AddConfigVersion")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -117,7 +127,7 @@ func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	}
 
 	sid := configKeyVersion(config.Id, config.Version)
-	_, err = cs.GetConf(config.Id, config.Version)
+	_, err = cs.GetConf(ctx, config.Id, config.Version)
 
 	if err == nil {
 		return nil, errors.New("version already exists! ")
@@ -130,7 +140,9 @@ func (cs *ConfigStore) AddConfigVersion(config *Config) (*Config, error) {
 	}
 	return config, nil
 }
-func (cs *ConfigStore) GetConf(id string, version string) (*Config, error) {
+func (cs *ConfigStore) GetConf(ctx context.Context, id string, version string) (*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetConfig")
+	defer span.Finish()
 	kv := cs.cli.KV()
 
 	sid := configKeyVersion(id, version)
@@ -145,7 +157,9 @@ func (cs *ConfigStore) GetConf(id string, version string) (*Config, error) {
 	}
 	return config, nil
 }
-func (cs *ConfigStore) Delete(id string, version string) (map[string]string, error) {
+func (cs *ConfigStore) Delete(ctx context.Context, id string, version string) (map[string]string, error) {
+	span := tracer.StartSpanFromContext(ctx, "DeleteConfig")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	_, err := kv.Delete(configKeyVersion(id, version), nil)
 	if err != nil {
@@ -153,7 +167,9 @@ func (cs *ConfigStore) Delete(id string, version string) (map[string]string, err
 	}
 	return map[string]string{"deleted": id}, nil
 }
-func (cs *ConfigStore) GetConfVersions(id string) ([]*Config, error) {
+func (cs *ConfigStore) GetConfVersions(ctx context.Context, id string) ([]*Config, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetConfigVersion")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	sid := configKey(id)
 	data, _, err := kv.List(sid, nil)
@@ -175,7 +191,9 @@ func (cs *ConfigStore) GetConfVersions(id string) ([]*Config, error) {
 	return configList, nil
 
 }
-func (cs *ConfigStore) Group(group *Group) (*Group, error) {
+func (cs *ConfigStore) Group(ctx context.Context, group *Group) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "CreateGroup")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	sid, rid := generateGroupKey(group.Version)
 	group.Id = rid
@@ -207,38 +225,16 @@ func (cs *ConfigStore) Group(group *Group) (*Group, error) {
 	}
 
 	return group, nil
-
-	/*	for _, v := range group.Config {
-		labels := ""
-		keys := make([]string, 0, len(v.Entries))
-		for k, _ := range v.Entries {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			labels += k + ":" + v.Entries[k] + ";"
-		}
-		labels = labels[:len(labels)-1]
-		sid, rid := generateGroupKey(group.Version, labels)
-		group.Id = rid
-		data, err := json.Marshal(group)
-		if err != nil {
-			return nil, err
-		}
-		p := &api.KVPair{Key: sid, Value: data}
-		_, err = kv.Put(p, nil)
-		if err != nil {
-			return nil, err
-		}*/
-
 }
 
-func (cs *ConfigStore) AddConfigGroupVersion(group *Group) (*Group, error) {
+func (cs *ConfigStore) AddConfigGroupVersion(ctx context.Context, group *Group) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "AddVersionGroup")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	data, err := json.Marshal(group)
 
 	sid := configKeyGroupVersion(group.Id, group.Version)
-	_, err = cs.GetGroup(group.Id, group.Version)
+	_, err = cs.GetGroup(ctx, group.Id, group.Version)
 
 	if err == nil {
 		return nil, errors.New("version already exists! ")
@@ -251,7 +247,9 @@ func (cs *ConfigStore) AddConfigGroupVersion(group *Group) (*Group, error) {
 	}
 	return group, nil
 }
-func (cs *ConfigStore) DeleteGroup(id string, version string) (map[string]string, error) {
+func (cs *ConfigStore) DeleteGroup(ctx context.Context, id string, version string) (map[string]string, error) {
+	span := tracer.StartSpanFromContext(ctx, "DeleteGroup")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	_, err := kv.Delete(configKeyGroupVersion(id, version), nil)
 	if err != nil {
@@ -259,7 +257,9 @@ func (cs *ConfigStore) DeleteGroup(id string, version string) (map[string]string
 	}
 	return map[string]string{"deleted": id}, nil
 }
-func (cs *ConfigStore) GetGroup(id string, version string) (*Group, error) {
+func (cs *ConfigStore) GetGroup(ctx context.Context, id string, version string) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "GetGroup")
+	defer span.Finish()
 	kv := cs.cli.KV()
 
 	sid := configKeyGroupVersion(id, version)
@@ -274,7 +274,9 @@ func (cs *ConfigStore) GetGroup(id string, version string) (*Group, error) {
 	}
 	return group, nil
 }
-func (cs *ConfigStore) GetConfGroupVersions(id string) ([]*Group, error) {
+func (cs *ConfigStore) GetConfGroupVersions(ctx context.Context, id string) ([]*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "FindConfVersions")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	sid := configKeyGroup(id)
 	data, _, err := kv.List(sid, nil)
@@ -317,7 +319,9 @@ func (cs *ConfigStore) GetConfGroupVersions(id string) ([]*Group, error) {
 	return configs, nil
 }*/
 
-func (cs *ConfigStore) Put(group *Group) (*Group, error) {
+func (cs *ConfigStore) Put(ctx context.Context, group *Group) (*Group, error) {
+	span := tracer.StartSpanFromContext(ctx, "FindConfVersions")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	data, err := json.Marshal(group)
 
