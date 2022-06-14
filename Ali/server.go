@@ -52,8 +52,9 @@ func (c *configServer) CloseTracer() error {
 }
 
 func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("createConfigHandler", cs.tracer, req)
 	defer span.Finish()
+
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	span.LogFields(
 		tracer.LogString("Handler", fmt.Sprintf("Handling greate config at %s\n", req.URL.Path)),
@@ -81,14 +82,14 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
-	if cs.store.CheckId(reqKey) == true {
-		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+	if cs.store.CheckId(ctx, reqKey) == true {
+		http.Error(w, "OK", http.StatusBadRequest)
 
 		return
 	}
 
 	idempotencyKey := ""
-	idempotencyKey = cs.store.SaveId()
+	idempotencyKey = cs.store.SaveId(ctx)
 
 	post, err := cs.store.Post(ctx, rt)
 	if err != nil {
@@ -99,8 +100,11 @@ func (cs *configServer) createPostHandler(w http.ResponseWriter, req *http.Reque
 	w.Write([]byte(idempotencyKey))
 }
 func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("GetAllHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all configs at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	allTasks, err := cs.store.GetAll(ctx)
 	if err != nil {
@@ -110,8 +114,11 @@ func (cs *configServer) getAllHandler(w http.ResponseWriter, req *http.Request) 
 	renderJSON(ctx, w, allTasks)
 }
 func (cs *configServer) getAllGroupHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("getAllGroupHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get all groups at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	allTasks, err := cs.store.GetAllGroups(ctx)
 	if err != nil {
@@ -121,8 +128,11 @@ func (cs *configServer) getAllGroupHandler(w http.ResponseWriter, req *http.Requ
 	renderJSON(ctx, w, allTasks)
 }
 func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("addConfigVersionHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling add config version at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
@@ -140,14 +150,14 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
-	if cs.store.CheckId(reqKey) == true {
-		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+	if cs.store.CheckId(ctx, reqKey) == true {
+		http.Error(w, "OK", http.StatusBadRequest)
 
 		return
 	}
 
 	idempotencyKey := ""
-	idempotencyKey = cs.store.SaveId()
+	idempotencyKey = cs.store.SaveId(ctx)
 	rt, err := decodeBody(ctx, req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -164,8 +174,11 @@ func (cs *configServer) addConfigVersion(w http.ResponseWriter, req *http.Reques
 
 }
 func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("getConfigHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling getConfig handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -178,8 +191,11 @@ func (cs *configServer) getConfigHandler(w http.ResponseWriter, req *http.Reques
 	renderJSON(ctx, w, config)
 }
 func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("delConfigHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del Config Handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -195,8 +211,11 @@ func (cs *configServer) delConfigHandler(w http.ResponseWriter, req *http.Reques
 func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *http.Request) {
 	id := mux.Vars(req)["id"]
 
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("GetConfVersionHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get config version handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	config, err := cs.store.GetConfVersions(ctx, id)
 	if err != nil {
@@ -209,8 +228,11 @@ func (cs *configServer) getConfigVersionsHandler(w http.ResponseWriter, req *htt
 }
 func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Request) {
 
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("greateGroupHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling create Group handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
@@ -235,14 +257,14 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
-	if cs.store.CheckId(reqKey) == true {
-		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+	if cs.store.CheckId(ctx, reqKey) == true {
+		http.Error(w, "OK", http.StatusBadRequest)
 
 		return
 	}
 
 	idempotencyKey := ""
-	idempotencyKey = cs.store.SaveId()
+	idempotencyKey = cs.store.SaveId(ctx)
 	group, err := cs.store.Group(ctx, rt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -252,8 +274,11 @@ func (cs *configServer) createGroupHandler(w http.ResponseWriter, req *http.Requ
 	w.Write([]byte(idempotencyKey))
 }
 func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("addConfigVersion", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling add config version handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	contentType := req.Header.Get("Content-Type")
 	reqKey := req.Header.Get("idempotency-key")
@@ -272,13 +297,13 @@ func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.R
 		renderJSON(ctx, w, "Idempotency-key is missing")
 		return
 	}
-	if cs.store.CheckId(reqKey) == true {
-		http.Error(w, "You cannot post same request", http.StatusBadRequest)
+	if cs.store.CheckId(ctx, reqKey) == true {
+		http.Error(w, "OK", http.StatusBadRequest)
 		return
 	}
 
 	idempotencyKey := ""
-	idempotencyKey = cs.store.SaveId()
+	idempotencyKey = cs.store.SaveId(ctx)
 	rt, err := decodeBodyGroups(ctx, req.Body)
 	if err != nil {
 		http.Error(w, "incvalid formtat", http.StatusBadRequest)
@@ -294,8 +319,11 @@ func (cs *configServer) addConfigGroupVersion(w http.ResponseWriter, req *http.R
 
 }
 func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("delGroupHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling del group handlere at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -308,8 +336,11 @@ func (cs *configServer) delGroupHandler(w http.ResponseWriter, req *http.Request
 }
 
 func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("addConfigToGroup", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling add config to group at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -350,8 +381,11 @@ func (cs *configServer) addConfig(w http.ResponseWriter, req *http.Request) {
 	renderJSON(ctx, w, nova)
 }
 func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("getGroupVersion", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get group version handler at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]
@@ -364,8 +398,11 @@ func (cs *configServer) getGroupVersionsHandler(w http.ResponseWriter, req *http
 	renderJSON(ctx, w, group)
 }
 func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("getConfigGroupVersionsHandler", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling get Config Group Versions at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	group, err := cs.store.GetConfGroupVersions(ctx, id)
@@ -377,8 +414,11 @@ func (cs *configServer) getConfigGroupVersions(w http.ResponseWriter, req *http.
 }
 
 func (cs *configServer) filter(w http.ResponseWriter, req *http.Request) {
-	span := tracer.StartSpanFromRequest("createConfig", cs.tracer, req)
+	span := tracer.StartSpanFromRequest("filterGroupBy version", cs.tracer, req)
 	defer span.Finish()
+	span.LogFields(
+		tracer.LogString("handler", fmt.Sprintf("handling cfilter group at %s\n", req.URL.Path)),
+	)
 	ctx := tracer.ContextWithSpan(context.Background(), span)
 	id := mux.Vars(req)["id"]
 	version := mux.Vars(req)["version"]

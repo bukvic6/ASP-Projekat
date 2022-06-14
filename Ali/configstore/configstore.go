@@ -1,7 +1,7 @@
 package configstore
 
 import (
-	"Ali/tracer"
+	tracer "Ali/tracer"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,7 +53,9 @@ func (cs *ConfigStore) Post(ctx context.Context, config *Config) (*Config, error
 
 	return config, nil
 }
-func (cs *ConfigStore) CheckId(reqId string) bool {
+func (cs *ConfigStore) CheckId(ctx context.Context, reqId string) bool {
+	span := tracer.StartSpanFromContext(ctx, "findId")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	k, _, err := kv.Get(reqId, nil)
 	if err != nil || k == nil {
@@ -64,7 +66,9 @@ func (cs *ConfigStore) CheckId(reqId string) bool {
 
 }
 
-func (cs *ConfigStore) SaveId() string {
+func (cs *ConfigStore) SaveId(ctx context.Context) string {
+	span := tracer.StartSpanFromContext(ctx, "SaveRequestId")
+	defer span.Finish()
 	kv := cs.cli.KV()
 	idempotencyId := uuid.New().String()
 	p := &api.KVPair{Key: idempotencyId, Value: nil}
@@ -121,12 +125,13 @@ func (cs *ConfigStore) AddConfigVersion(ctx context.Context, config *Config) (*C
 	span := tracer.StartSpanFromContext(ctx, "AddConfigVersion")
 	defer span.Finish()
 	kv := cs.cli.KV()
+	ctxKey := tracer.ContextWithSpan(ctx, span)
 	data, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
 	}
 
-	sid := configKeyVersion(config.Id, config.Version)
+	sid := configKeyVersion(ctxKey, config.Id, config.Version)
 	_, err = cs.GetConf(ctx, config.Id, config.Version)
 
 	if err == nil {
@@ -134,10 +139,14 @@ func (cs *ConfigStore) AddConfigVersion(ctx context.Context, config *Config) (*C
 	}
 
 	p := &api.KVPair{Key: sid, Value: data}
+
+	putKey := tracer.StartSpanFromContext(ctxKey, "kv.put")
 	_, err = kv.Put(p, nil)
 	if err != nil {
+		tracer.LogError(span, err)
 		return nil, err
 	}
+	putKey.Finish()
 	return config, nil
 }
 func (cs *ConfigStore) GetConf(ctx context.Context, id string, version string) (*Config, error) {
@@ -145,7 +154,7 @@ func (cs *ConfigStore) GetConf(ctx context.Context, id string, version string) (
 	defer span.Finish()
 	kv := cs.cli.KV()
 
-	sid := configKeyVersion(id, version)
+	sid := configKeyVersion(ctx, id, version)
 	pair, _, err := kv.Get(sid, nil)
 	if err != nil {
 		return nil, err
@@ -161,7 +170,7 @@ func (cs *ConfigStore) Delete(ctx context.Context, id string, version string) (m
 	span := tracer.StartSpanFromContext(ctx, "DeleteConfig")
 	defer span.Finish()
 	kv := cs.cli.KV()
-	_, err := kv.Delete(configKeyVersion(id, version), nil)
+	_, err := kv.Delete(configKeyVersion(ctx, id, version), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +180,7 @@ func (cs *ConfigStore) GetConfVersions(ctx context.Context, id string) ([]*Confi
 	span := tracer.StartSpanFromContext(ctx, "GetConfigVersion")
 	defer span.Finish()
 	kv := cs.cli.KV()
-	sid := configKey(id)
+	sid := configKey(ctx, id)
 	data, _, err := kv.List(sid, nil)
 	if err != nil {
 		return nil, err
@@ -209,7 +218,7 @@ func (cs *ConfigStore) Group(ctx context.Context, group *Group) (*Group, error) 
 			labels += k + ":" + v.Entries[k] + ","
 		}
 		labels = labels[:len(labels)-1]
-		configKeyGroupVersionlabel(group.Id, group.Version, labels)
+		configKeyGroupVersionlabel(ctx, group.Id, group.Version, labels)
 
 	}
 
@@ -233,7 +242,7 @@ func (cs *ConfigStore) AddConfigGroupVersion(ctx context.Context, group *Group) 
 	kv := cs.cli.KV()
 	data, err := json.Marshal(group)
 
-	sid := configKeyGroupVersion(group.Id, group.Version)
+	sid := configKeyGroupVersion(ctx, group.Id, group.Version)
 	_, err = cs.GetGroup(ctx, group.Id, group.Version)
 
 	if err == nil {
@@ -251,7 +260,7 @@ func (cs *ConfigStore) DeleteGroup(ctx context.Context, id string, version strin
 	span := tracer.StartSpanFromContext(ctx, "DeleteGroup")
 	defer span.Finish()
 	kv := cs.cli.KV()
-	_, err := kv.Delete(configKeyGroupVersion(id, version), nil)
+	_, err := kv.Delete(configKeyGroupVersion(ctx, id, version), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -261,12 +270,16 @@ func (cs *ConfigStore) GetGroup(ctx context.Context, id string, version string) 
 	span := tracer.StartSpanFromContext(ctx, "GetGroup")
 	defer span.Finish()
 	kv := cs.cli.KV()
+	ctxKey := tracer.ContextWithSpan(ctx, span)
 
-	sid := configKeyGroupVersion(id, version)
+	sid := configKeyGroupVersion(ctxKey, id, version)
+	getKey := tracer.StartSpanFromContext(ctxKey, "kv.get")
+
 	pair, _, err := kv.Get(sid, nil)
 	if err != nil || pair == nil {
 		return nil, errors.New("not existing")
 	}
+	getKey.Finish()
 	group := &Group{}
 	err = json.Unmarshal(pair.Value, group)
 	if err != nil {
@@ -278,7 +291,7 @@ func (cs *ConfigStore) GetConfGroupVersions(ctx context.Context, id string) ([]*
 	span := tracer.StartSpanFromContext(ctx, "FindConfVersions")
 	defer span.Finish()
 	kv := cs.cli.KV()
-	sid := configKeyGroup(id)
+	sid := configKeyGroup(ctx, id)
 	data, _, err := kv.List(sid, nil)
 	if err != nil {
 		return nil, err
@@ -299,33 +312,13 @@ func (cs *ConfigStore) GetConfGroupVersions(ctx context.Context, id string) ([]*
 
 }
 
-/*func (cs *ConfigStore) Filter(id string, version string, label string) ([]*ConfigG, error) {
-	kv := cs.cli.KV()
-	data, _, err := kv.List(filter(id, version, label), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	configs := []*ConfigG{}
-	for _, pair := range data {
-		config := &ConfigG{}
-		err = json.Unmarshal(pair.Value, config)
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, config)
-	}
-
-	return configs, nil
-}*/
-
 func (cs *ConfigStore) Put(ctx context.Context, group *Group) (*Group, error) {
 	span := tracer.StartSpanFromContext(ctx, "FindConfVersions")
 	defer span.Finish()
 	kv := cs.cli.KV()
 	data, err := json.Marshal(group)
 
-	sid := configKeyGroupVersion(group.Id, group.Version)
+	sid := configKeyGroupVersion(ctx, group.Id, group.Version)
 
 	p := &api.KVPair{Key: sid, Value: data}
 	_, err = kv.Put(p, nil)

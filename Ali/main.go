@@ -1,7 +1,6 @@
 package main
 
 import (
-	cs "Ali/configstore"
 	"context"
 	"github.com/gorilla/mux"
 	"log"
@@ -19,13 +18,11 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 
-	store, err := cs.New()
+	server, err := NewCOnfigServer()
 	if err != nil {
 		log.Fatal(err)
 	}
-	server := configServer{
-		store: store,
-	}
+
 	router.HandleFunc("/config/", countCreateConfig(server.createPostHandler)).Methods("POST")
 	router.HandleFunc("/configs/", countGetAll(server.getAllHandler)).Methods("GET")
 	router.HandleFunc("/configs/{id}", countConfigVersions(server.getConfigVersionsHandler)).Methods("GET")

@@ -1,8 +1,10 @@
 package configstore
 
 import (
+	"Ali/tracer"
 	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -21,26 +23,37 @@ func generateKey(version string) (string, string) {
 	id := uuid.New().String()
 	return fmt.Sprintf(config, id, version), id
 }
-func configKeyVersion(id string, version string) string {
+func configKeyVersion(ctx context.Context, id string, version string) string {
+	span := tracer.StartSpanFromContext(ctx, "constructKeyVersion")
+	defer span.Finish()
 	return fmt.Sprintf(configV, id, version)
 
 }
-func configKey(id string) string {
+func configKey(ctx context.Context, id string) string {
+	span := tracer.StartSpanFromContext(ctx, "ConstructConfigKey")
+	defer span.Finish()
 	return fmt.Sprintf(configId, id)
 }
 
 func generateGroupKey(version string) (string, string) {
+
 	id := uuid.New().String()
 	return fmt.Sprintf(group, id, version), id
 }
-func configKeyGroupVersion(id string, version string) string {
+func configKeyGroupVersion(ctx context.Context, id string, version string) string {
+	span := tracer.StartSpanFromContext(ctx, "ConstructKeyGroupVersion")
+	defer span.Finish()
 	return fmt.Sprintf(group, id, version)
 
 }
-func configKeyGroupVersionlabel(id string, version string, labels string) string {
+func configKeyGroupVersionlabel(ctx context.Context, id string, version string, labels string) string {
+	span := tracer.StartSpanFromContext(ctx, "ConstructConfigKey")
+	defer span.Finish()
 	return fmt.Sprintf(grouplabel, id, version, labels)
 
 }
-func configKeyGroup(id string) string {
+func configKeyGroup(ctx context.Context, id string) string {
+	span := tracer.StartSpanFromContext(ctx, "configKeyGroup")
+	defer span.Finish()
 	return fmt.Sprintf(configGroupId, id)
 }
